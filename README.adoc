@@ -152,5 +152,5 @@ Password: admin
 == try it
 [source,bash]
 ----
-open https://$ip:8443/ # fo example: `open https://console.daggerok.io:8443/`
+open https://console.daggerok.io:8443/
 ----
