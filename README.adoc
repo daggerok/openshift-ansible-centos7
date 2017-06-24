@@ -1,4 +1,5 @@
 = openshift-ansible-centos7
+
 installation openshift origin 1.5 on CentOS 7 using ansible inside virtual machine
 
 == important: you have to be able configure dns zone for A and CNAME records
