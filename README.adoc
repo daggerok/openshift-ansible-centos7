@@ -1,0 +1,156 @@
+= openshift-ansible-centos7
+installation openshift origin 1.5 on CentOS 7 using ansible inside virtual machine
+
+== important: you have to be able configure dns zone for A and CNAME records
+in example we need:
+
+. two `A`-records pointing to public ip `$IP` of server for domain (in this case daggerok.io):
+. . `console.daggerok.io      $IP
+. . `apps.console.daggerok.io $IP`
+. one `CNAME`-record for deployed applications:
+. . `*                        apps.console.daggerok.io`
+
+== onstall centos 7
+. use vmware player / workstation / fusion
+. create new machine x64 centos
+. memory 4 Gb
+. processor 4 cores (or 2 cpus, 2 cores)
+. hard drive (one file) 40 Gb
+. mount disk centos 7 minimal x64 iso
+. install os:
+. . turn on ethernet
+. . create user as administrator
+. . reboot after installation
+
+== setup ssh access for installed user
+[source,bash]
+----
+sudo visudo
+...
+%wheel	ALL=(ALL:ALL) NOPASSWD: ALL
+...
+:wq!
+#sudo sed -i -- 's/#PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+#sudo sed -i -- 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+ip addr # get $ip
+logout
+# from client console
+ssh mak@192.168.67.130
+----
+
+== update / install needed software
+[sources,bash]
+----
+sudo -s
+yun update -y
+...
+yum install -y epel-release
+...
+yum update -y
+...
+yum install -y docker wget git ansible vim python-cryptography pyOpenSSL python-passlib java-1.8.0-openjdk-headless
+...
+service docker start
+service docker status
+----
+
+== clone openshift-ansible project
+[sources,bash]
+----
+cd /etc/ && git clone https://github.com/openshift/openshift-ansible
+cd openshift-ansible/ && vim openshift.erb
+----
+
+== config ansible inventory
+[sources,bash]
+----
+cd openshift-ansible/ && vim openshift.erb
+----
+
+[source,ruby]
+----
+[OSEv3:children]
+masters
+nodes
+
+[OSEv3:vars]
+ansible_ssh_user=root
+deployment_type=origin
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+containerized=true
+openshift_release=v1.5.0
+openshift_image_tag=v1.5.0
+openshift_public_hostname=console.daggerok.io
+openshift_master_default_subdomain=apps.console.daggerok.io
+openshift_hosted_metrics_deploy=true
+#openshift_master_overwrite_named_certificates=true
+#openshift_master_named_certificates=[{"certfile": "/etc/letsencrypt/live/console.daggerok.io/cert.pem", "keyfile": "/etc/letsencrypt/live/console.daggerok.io/privkey.pem", "cafile": "/etc/letsencrypt/live/console.daggerok.io/fullchain.pem"}]
+
+[masters]
+console.daggerok.io openshift_schedulable=true
+
+[nodes]
+console.daggerok.io openshift_node_labels="{'region': 'infra', 'zone': 'default'}" openshift_schedulable=true
+----
+
+== update hosts file to be able resolve console.daggerok.io hostname (also on client machine)
+[sources,bash]
+----
+vim /etc/hosts
+...
+127.0.0.1 console.daggerok.io
+----
+
+== create ssh RSA key
+[sources,bash]
+----
+ssh-keygen -t rsa
+# enter with no passwords...
+----
+
+== copy ssh identity to be able to ssh login wothout password
+[sources,bash]
+----
+ssh-copy-id root@console.daggerok.io
+/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+root@console.daggerok.io's password:
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'root@console.daggerok.io'"
+and check to make sure that only the key(s) you wanted were added.
+----
+
+== disable checks
+. docker_storage
+. memory_availability
+
+[source,bash]
+----
+vim /etc/openshift-ansible/playbooks/byo/openshift-cluster/config.yml
+...
+----
+
+== install openshift using ansible
+[source,bash]
+----
+ansible-playbook -i /etc/openshift-ansible/openshift.erb /etc/openshift-ansible/playbooks/byo/config.yml
+----
+
+== create opeshift user
+[source,bash]
+----
+htpasswd -b /etc/origin/master/htpasswd admin admin
+oc login
+Username: admin
+Password: admin
+----
+
+== try it
+[source,bash]
+----
+open https://$ip:8443/ # fo example: `open https://console.daggerok.io:8443/`
+----
