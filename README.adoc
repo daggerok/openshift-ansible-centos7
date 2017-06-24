@@ -5,10 +5,10 @@ installation openshift origin 1.5 on CentOS 7 using ansible inside virtual machi
 in example we need:
 
 . two `A`-records pointing to public ip `$IP` of server for domain (in this case daggerok.io):
-. . `console.daggerok.io      $IP`
-. . `apps.console.daggerok.io $IP`
+  . `console.daggerok.io      $IP`
+  . `apps.console.daggerok.io $IP`
 . one `CNAME`-record for deployed applications:
-. . `*                        apps.console.daggerok.io`
+  . `*                        apps.console.daggerok.io`
 
 == onstall centos 7
 . use vmware player / workstation / fusion
