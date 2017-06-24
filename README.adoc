@@ -18,9 +18,9 @@ in example we need:
 . hard drive (one file) 40 Gb
 . mount disk centos 7 minimal x64 iso
 . install os:
-. . turn on ethernet
-. . create user as administrator
-. . reboot after installation
+  - turn on ethernet
+  - create user as administrator
+  - reboot after installation
 
 == setup ssh access for installed user
 [source,bash]
